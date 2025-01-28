@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-import re
 import subprocess
 from copy import deepcopy
 from tkinter import Tk, messagebox
@@ -139,8 +138,8 @@ class Reports:
             docs[ds].save(path)
 
 def prompt_directory() -> str:
-    return Path(os.getcwd()) / Path('input')
-    # return askdirectory(title='Input directory', initialdir=os.getcwd())
+    # return Path(os.getcwd()) / Path('input')
+    return askdirectory(title='Input directory', initialdir=os.getcwd())
 
 
 def show_result(path: str) -> None:
