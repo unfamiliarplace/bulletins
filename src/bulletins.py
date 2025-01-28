@@ -11,27 +11,23 @@ from typing import List, Dict, Any, Optional, Union, Generator, Tuple, Set, Text
 from docx import Document
 from doctools import DocumentTools
 
-OUTPUT_ROOT = 'output'
-STUDENT_TEMPLATE = 'templates/student.docx'
+OUTPUT_ROOT = 'collated'
+STUDENT_TEMPLATE = 'src/templates/student.docx'
 
 class Reports:
 
     @staticmethod
     def list_files(path: str) -> List[str]:
-        return list(os.path.join(path, p) for p in list(os.walk(path))[0][2])
+        return list(filter(lambda p: '~' not in p.stem, path.glob('*.docx')))
 
     @staticmethod
-    def parse_files(filenames: List[str]) -> Dict[str, Tuple[str, Dict[str, str]]]:
+    def parse_files(paths: List[Path]) -> Dict[str, Tuple[str, Dict[str, str]]]:
         # Returns dict of {date: (question, {student: answer})}
 
         dates = {}
-        for filename in filenames:
-            if ('~' in filename) or (not filename.endswith('.docx')):
-                continue
-
-            
-            ds = Path(filename).parts[-1].split('.')[0]
-            question, answers = Reports.parse_file(Document(filename))
+        for path in paths:            
+            ds = path.stem
+            question, answers = Reports.parse_file(Document(path))
             dates[ds] = (question, answers)
 
         return dates
@@ -64,12 +60,13 @@ class Reports:
         return question, answers
 
     @staticmethod
-    def map_aliases(dir_root: str) -> dict[str, str]:
+    def map_aliases(path_dir: Path) -> dict[str, str]:
         d = {}
-        p_names = Path(dir_root) / '_names.txt'
-        if not os.path.exists(p_names):
+        path_names = path_dir / '_names.txt'
+        if not path_names.exists():
             return d
-        with open(p_names, 'r', encoding='utf-8') as f:
+        
+        with open(path_names, 'r', encoding='utf-8') as f:
             for line in f.readlines():
                 line = line.strip()
                 if line:
@@ -132,9 +129,12 @@ class Reports:
         return d
 
     @staticmethod
-    def save_documents(docs: Dict[str, Document]) -> None:
+    def save_documents(docs: Dict[str, Document], path_input_dir: Path) -> None:
+        path_output_dir = path_input_dir / OUTPUT_ROOT
+        path_output_dir.mkdir(parents=True, exist_ok=True)
+
         for ds in docs:
-            path = os.path.join(OUTPUT_ROOT, ds) + '.docx'
+            path = path_output_dir / (f'{ds}.docx')
             docs[ds].save(path)
 
 def prompt_directory() -> str:
@@ -151,13 +151,13 @@ def show_result(path: str) -> None:
 
 
 def generate_reports() -> None:
-    input_directory = prompt_directory()
-    filenames = Reports.list_files(input_directory)
+    input_path = Path(prompt_directory())
+    filenames = Reports.list_files(input_path)
     dses = Reports.parse_files(filenames)
-    aliases = Reports.map_aliases(input_directory)
+    aliases = Reports.map_aliases(input_path)
     students = Reports.collate_students(dses, aliases)
     documents = Reports.make_documents(students)
-    Reports.save_documents(documents)
+    Reports.save_documents(documents, input_path)
     show_result(OUTPUT_ROOT)
 
 
