@@ -1,4 +1,6 @@
 *DS_STORE*
+src/input/*
+!src/input/_readme.md
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
