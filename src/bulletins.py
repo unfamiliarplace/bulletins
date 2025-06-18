@@ -11,8 +11,12 @@ from typing import List, Dict, Any, Optional, Union, Generator, Tuple, Set, Text
 from docx import Document
 from doctools import DocumentTools
 
-OUTPUT_ROOT = 'collated'
-STUDENT_TEMPLATE = 'src/templates/student.docx'
+PATH_OUTPUT_SUFFIX = 'collated'
+PATH_SRC = Path('src')
+PATH_INPUT_DEFAULT = PATH_SRC / 'input'
+PATH_OUTPUT_DEFAULT = PATH_INPUT_DEFAULT / PATH_OUTPUT_SUFFIX
+PATH_TEMPLATES = PATH_SRC / 'templates'
+PATH_TEMPLATE_STUDENT = PATH_TEMPLATES / 'student.docx'
 
 class Reports:
 
@@ -112,7 +116,7 @@ class Reports:
 
     @staticmethod
     def make_document(student: str, dses: List[Tuple[str, str, str]]) -> Document:
-        d = Document(STUDENT_TEMPLATE)
+        d = Document(PATH_TEMPLATE_STUDENT)
 
         DocumentTools.sub(d, '__student__', student)
 
@@ -130,17 +134,17 @@ class Reports:
 
     @staticmethod
     def save_documents(docs: Dict[str, Document], path_input_dir: Path) -> None:
-        path_output_dir = path_input_dir / OUTPUT_ROOT
+        path_output_dir = path_input_dir / PATH_OUTPUT_SUFFIX
         path_output_dir.mkdir(parents=True, exist_ok=True)
 
         for ds in docs:
             path = path_output_dir / (f'{ds}.docx')
             docs[ds].save(path)
 
-def prompt_directory() -> str:
+def prompt_directory(initialdir: Path|str=os.getcwd()) -> str:
     # return Path(os.getcwd()) / Path('input')
-    return askdirectory(title='Input directory', initialdir=os.getcwd())
-
+    pathstr = askdirectory(title='Input directory', initialdir=initialdir)
+    return Path(pathstr)
 
 def show_result(path: str) -> None:
     return
@@ -149,17 +153,16 @@ def show_result(path: str) -> None:
         open_path = path.replace('/', '\\')
         subprocess.Popen(f'explorer "{open_path}"')
 
-
 def generate_reports() -> None:
-    input_path = Path(prompt_directory())
-    filenames = Reports.list_files(input_path)
+    path_input = prompt_directory(PATH_INPUT_DEFAULT)
+    path_output = path_input / PATH_OUTPUT_SUFFIX
+    filenames = Reports.list_files(path_input)
     dses = Reports.parse_files(filenames)
-    aliases = Reports.map_aliases(input_path)
+    aliases = Reports.map_aliases(path_input)
     students = Reports.collate_students(dses, aliases)
     documents = Reports.make_documents(students)
-    Reports.save_documents(documents, input_path)
-    show_result(OUTPUT_ROOT)
-
+    Reports.save_documents(documents, path_input)
+    show_result(path_output)
 
 if __name__ == '__main__':
     root = Tk()
