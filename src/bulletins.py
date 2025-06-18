@@ -73,7 +73,7 @@ class Reports:
         with open(path_names, 'r', encoding='utf-8') as f:
             for line in f.readlines():
                 line = line.strip()
-                if line:
+                if line and not line.startswith(';'):
                     alias, real = line.split('::')
                     d[alias.lower()] = real
 
